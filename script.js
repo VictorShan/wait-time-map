@@ -21,14 +21,14 @@
     function listenToDB(map) {
         firebase.database().ref("locations").on('value', snapshot => {
             const data = snapshot.val();
-            console.log(data);
             for (const location in locations) {
                 locations[location].marker.setMap(null);
-                delete markers[location]
+                locations[location].infoWindow.setMap(null);
+                delete locations[location];
             }
             for (const location in data) {
                 locations[location] = data[location];
-                locations[location].marker = genMarker(location, data[location], map);
+                [locations[location].marker, locations[location].infoWindow] = genMarker(location, data[location], map);
             }
         });
     }
@@ -40,18 +40,17 @@
 
         const infoWindow = new google.maps.InfoWindow({
             content: convertDOMToString(container),
+            position: new google.maps.LatLng(data.lat, data.long),
         });
-        console.log(parseFloat(data.lat), parseFloat(data.long))
         const marker = new google.maps.Marker({
             position: { lat: parseFloat(data.lat), lng: parseFloat(data.long) },
             map,
             title: name,
         });
-        console.log(marker);
 
         let isOpen = true;
         infoWindow.open({
-            anchor: marker,
+            anchor: null, //marker,
             map,
             shouldFocus: false,
         });
@@ -60,7 +59,7 @@
                 infoWindow.close();
             } else {
                 infoWindow.open({
-                    anchor: marker,
+                    anchor: null,
                     map,
                     shouldFocus: false,
                 });
@@ -68,7 +67,7 @@
             isOpen = !isOpen;
         });
 
-        return marker;
+        return [marker, infoWindow];
     }
 
     function convertDOMToString(element) {
@@ -87,7 +86,6 @@
     function genCardTime(queue, workers, workRate) {
         const time = gen("p");
         time.classList.add("card-time");
-        console.log(queue);
         const timeLeft = Object.values(queue).reduce((acc, curr) => acc + curr)
         const estTime = timeLeft / (workers * workRate)
         time.textContent = "Est. " + (estTime > 60 ? "60+ mins" : estTime + " mins");
